@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>EvD Level 1</title>
+  <style>
+    html, body { margin: 0; padding: 0; overflow: hidden; }
+    #gameCanvas { display: block; background: #000; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script>
+    // Canvas setup
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Grid configuration
+    const COLS = 10;
+    const ROWS = 6;
+    const BACKGROUND_URL = 'https://static.wikia.nocookie.net/plantsvszombies/images/3/37/Frontyard.jpg/revision/latest/scale-to-width-down/1200?cb=20120319165842';
+
+    // Cell size will be determined after loading background
+    let CELL_WIDTH, CELL_HEIGHT;
+    let assets = {};
+
+    function loadAssets() {
+      // Load background image
+      assets.lawn = new Image();
+      assets.lawn.src = BACKGROUND_URL;
+      assets.lawn.onload = () => {
+        initCanvas();
+        initGame();
+        requestAnimationFrame(gameLoop);
+      };
+
+      // Placeholder: user-provided textures to be loaded here
+      // assets['orbFungi'] = new Image(); assets['orbFungi'].src = 'path/to/orb_fungi.png';
+    }
+
+    function initCanvas() {
+      canvas.width = assets.lawn.width;
+      canvas.height = assets.lawn.height;
+      CELL_WIDTH = canvas.width / COLS;
+      CELL_HEIGHT = canvas.height / ROWS;
+    }
+
+    // Game state
+    const gameState = {
+      lastTime: 0,
+      entities: [], // plants, invaders, projectiles, etc.
+      waves: [],
+      resources: 50, // starting spark orbs
+    };
+
+    function initGame() {
+      // Initialize first wave schedule
+      gameState.waves = [
+        { time: 45, type: 'crawler', count: 5 },
+        { time: 120, type: 'crawler', count: 10 },
+        { time: 180, type: 'flag',   typeList: [ { type: 'crawler', count: 20 }, { type: 'armor', count: 5 } ] }
+      ];
+    }
+
+    function gameLoop(timestamp) {
+      const dt = (timestamp - gameState.lastTime) / 1000;
+      gameState.lastTime = timestamp;
+
+      update(dt);
+      draw();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+      // TODO: spawn waves based on elapsed time
+      // TODO: update entity positions, handle input, collisions
+    }
+
+    function draw() {
+      // Draw lawn background
+      ctx.drawImage(assets.lawn, 0, 0);
+
+      // Draw grid overlay (for debugging)
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      for (let i = 0; i <= COLS; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * CELL_WIDTH, 0);
+        ctx.lineTo(i * CELL_WIDTH, canvas.height);
+        ctx.stroke();
+      }
+      for (let j = 0; j <= ROWS; j++) {
+        ctx.beginPath();
+        ctx.moveTo(0, j * CELL_HEIGHT);
+        ctx.lineTo(canvas.width, j * CELL_HEIGHT);
+        ctx.stroke();
+      }
+
+      // TODO: draw entities (plants, invaders, projectiles)
+
+      // Draw UI: resource counter
+      ctx.fillStyle = '#fff';
+      ctx.font = '20px sans-serif';
+      ctx.fillText(`Spark Orbs: ${gameState.resources}`, 10, 30);
+    }
+
+    // Start
+    loadAssets();
+  </script>
+</body>
+</html>
