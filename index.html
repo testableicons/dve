@@ -11,31 +11,38 @@
 <body>
   <canvas id="gameCanvas"></canvas>
   <script>
-    // Canvas setup
+    // Canvas and grid configuration
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-
-    // Grid configuration
     const COLS = 10;
     const ROWS = 6;
-    const BACKGROUND_URL = 'https://static.wikia.nocookie.net/plantsvszombies/images/3/37/Frontyard.jpg/revision/latest/scale-to-width-down/1200?cb=20120319165842';
-
-    // Cell size will be determined after loading background
     let CELL_WIDTH, CELL_HEIGHT;
-    let assets = {};
+
+    // Asset URLs (from the /mnt/data folder)
+    const ASSET_PATHS = {
+      lawn: 'https://static.wikia.nocookie.net/plantsvszombies/images/3/37/Frontyard.jpg/revision/latest/scale-to-width-down/1200?cb=20120319165842',
+      sunIcon: '/mnt/data/sun.png',
+      sunflower: '/mnt/data/sunflower.png',
+      peashooter: '/mnt/data/peashooter.png',
+      zombie: '/mnt/data/zombie.png'
+    };
+
+    const assets = {};
+    let loadedCount = 0, toLoadCount = Object.keys(ASSET_PATHS).length;
 
     function loadAssets() {
-      // Load background image
-      assets.lawn = new Image();
-      assets.lawn.src = BACKGROUND_URL;
-      assets.lawn.onload = () => {
-        initCanvas();
-        initGame();
-        requestAnimationFrame(gameLoop);
-      };
-
-      // Placeholder: user-provided textures to be loaded here
-      // assets['orbFungi'] = new Image(); assets['orbFungi'].src = 'path/to/orb_fungi.png';
+      for (const [key, src] of Object.entries(ASSET_PATHS)) {
+        const img = new Image();
+        img.src = src;
+        img.onload = () => {
+          assets[key] = img;
+          if (++loadedCount === toLoadCount) {
+            initCanvas();
+            initGame();
+            requestAnimationFrame(gameLoop);
+          }
+        };
+      }
     }
 
     function initCanvas() {
@@ -45,43 +52,39 @@
       CELL_HEIGHT = canvas.height / ROWS;
     }
 
-    // Game state
+    // Simple game state with one plant and one invader
     const gameState = {
-      lastTime: 0,
-      entities: [], // plants, invaders, projectiles, etc.
-      waves: [],
-      resources: 50, // starting spark orbs
+      elapsed: 0,
+      resources: 50,
+      plants: [ { type: 'sunflower', row: 2, col: 2 } ],
+      invaders: [ { type: 'zombie', row: 3, x: canvas ? canvas.width : 0, speed: 30 } ]
     };
 
     function initGame() {
-      // Initialize first wave schedule
-      gameState.waves = [
-        { time: 45, type: 'crawler', count: 5 },
-        { time: 120, type: 'crawler', count: 10 },
-        { time: 180, type: 'flag',   typeList: [ { type: 'crawler', count: 20 }, { type: 'armor', count: 5 } ] }
-      ];
+      // Position the invader just off-screen to the right
+      gameState.invaders[0].x = canvas.width;
     }
 
     function gameLoop(timestamp) {
-      const dt = (timestamp - gameState.lastTime) / 1000;
-      gameState.lastTime = timestamp;
-
+      const dt = gameState.elapsed ? (timestamp - gameState.elapsed) / 1000 : 0;
+      gameState.elapsed = timestamp;
       update(dt);
       draw();
-
       requestAnimationFrame(gameLoop);
     }
 
     function update(dt) {
-      // TODO: spawn waves based on elapsed time
-      // TODO: update entity positions, handle input, collisions
+      // Move invaders leftwards
+      gameState.invaders.forEach(z => {
+        z.x -= z.speed * dt;
+      });
     }
 
     function draw() {
-      // Draw lawn background
+      // Draw background lawn
       ctx.drawImage(assets.lawn, 0, 0);
 
-      // Draw grid overlay (for debugging)
+      // Draw grid (optional for debugging)
       ctx.strokeStyle = 'rgba(255,255,255,0.2)';
       for (let i = 0; i <= COLS; i++) {
         ctx.beginPath();
@@ -96,15 +99,29 @@
         ctx.stroke();
       }
 
-      // TODO: draw entities (plants, invaders, projectiles)
+      // Draw plants
+      gameState.plants.forEach(p => {
+        const img = assets[p.type];
+        const x = p.col * CELL_WIDTH;
+        const y = p.row * CELL_HEIGHT;
+        ctx.drawImage(img, x, y, CELL_WIDTH, CELL_HEIGHT);
+      });
 
-      // Draw UI: resource counter
+      // Draw invaders
+      gameState.invaders.forEach(z => {
+        const img = assets[z.type];
+        // Keep at same size as cell
+        const y = z.row * CELL_HEIGHT;
+        ctx.drawImage(img, z.x, y, CELL_WIDTH, CELL_HEIGHT);
+      });
+
+      // Draw UI: sun icon and resource count
+      ctx.drawImage(assets.sunIcon, 10, 10, 40, 40);
       ctx.fillStyle = '#fff';
-      ctx.font = '20px sans-serif';
-      ctx.fillText(`Spark Orbs: ${gameState.resources}`, 10, 30);
+      ctx.font = '24px sans-serif';
+      ctx.fillText(gameState.resources, 60, 38);
     }
 
-    // Start
     loadAssets();
   </script>
 </body>
